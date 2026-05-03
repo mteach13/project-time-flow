@@ -14,16 +14,251 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      active_timers: {
+        Row: {
+          note: string
+          project_id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          note?: string
+          project_id: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          note?: string
+          project_id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_timers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      plan_entries: {
+        Row: {
+          created_at: string
+          estimated_hours: number
+          id: string
+          project_id: string
+          user_id: string
+          week_start_date: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_hours?: number
+          id?: string
+          project_id: string
+          user_id: string
+          week_start_date: string
+        }
+        Update: {
+          created_at?: string
+          estimated_hours?: number
+          id?: string
+          project_id?: string
+          user_id?: string
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      project_members: {
+        Row: {
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          hourly_budget: number | null
+          id: string
+          name: string
+          status: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          hourly_budget?: number | null
+          id?: string
+          name: string
+          status?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          hourly_budget?: number | null
+          id?: string
+          name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_entries: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          entry_date: string
+          id: string
+          minutes: number
+          note: string
+          project_id: string
+          source: Database["public"]["Enums"]["entry_source"]
+          started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          entry_date: string
+          id?: string
+          minutes: number
+          note?: string
+          project_id: string
+          source?: Database["public"]["Enums"]["entry_source"]
+          started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          entry_date?: string
+          id?: string
+          minutes?: number
+          note?: string
+          project_id?: string
+          source?: Database["public"]["Enums"]["entry_source"]
+          started_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "member"
+      entry_source: "timer" | "manual"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +385,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "member"],
+      entry_source: ["timer", "manual"],
+    },
   },
 } as const
