@@ -28,7 +28,7 @@ function toCSV(rows: { client: string; project: string; user: string; hours: str
 function toIIF(rows: Row[]) {
   const lines: string[] = [];
   lines.push(["!TIMERHDR", "VER", "REL", "COMPANYNAME", "IMPORTEDBEFORE", "FROMTIMER"].join("\t"));
-  lines.push(["TIMERHDR", "8", "0", "Atelier Time Export", "N", "Y"].join("\t"));
+  lines.push(["TIMERHDR", "8", "0", "SPARK Time Export", "N", "Y"].join("\t"));
   lines.push(["!TIMEACT", "DATE", "JOB", "EMP", "ITEM", "PITEM", "DURATION", "PROJ", "NOTE", "XFERTOPAYROLL", "BILLINGSTATUS"].join("\t"));
   for (const r of rows) {
     const hh = Math.floor(r.minutes / 60);
@@ -141,7 +141,7 @@ export default function Export() {
         <ol className="list-decimal list-inside text-muted-foreground space-y-1">
           <li>In QuickBooks Desktop: <em>File → Utilities → Import → Timer Activities</em>.</li>
           <li>Select the downloaded <code>.iif</code> file.</li>
-          <li>Customers / employees / service items must already exist in QuickBooks with names that match Atelier Time.</li>
+          <li>Customers / employees / service items must already exist in QuickBooks with names that match SPARK Time.</li>
         </ol>
       </Card>
     </div>

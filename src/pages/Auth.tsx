@@ -67,7 +67,7 @@ export default function AuthPage() {
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gradient-warm shadow-elegant">
             <Clock className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="text-4xl font-serif">Atelier Time</h1>
+          <h1 className="text-4xl font-serif">SPARK Time</h1>
           <p className="text-muted-foreground">Time tracking for design studios</p>
         </div>
         <Card className="p-8 shadow-elegant">

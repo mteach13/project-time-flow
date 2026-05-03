@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design system: warm editorial agency aesthetic.
-   Cream paper background, deep ink text, terracotta accent. */
+/* Design system: bold agency aesthetic.
+   Cream paper background, deep ink text, red accent. */
 
 @layer base {
   :root {
@@ -16,9 +16,9 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 25% 12%;
 
-    --primary: 14 75% 48%;
+    --primary: 0 75% 48%;
     --primary-foreground: 38 30% 98%;
-    --primary-glow: 14 85% 60%;
+    --primary-glow: 0 85% 60%;
 
     --secondary: 38 22% 90%;
     --secondary-foreground: 220 25% 12%;
@@ -40,22 +40,22 @@
 
     --border: 38 18% 85%;
     --input: 38 18% 85%;
-    --ring: 14 75% 48%;
+    --ring: 0 75% 48%;
 
     --radius: 0.5rem;
 
-    --gradient-warm: linear-gradient(135deg, hsl(14 75% 48%), hsl(28 80% 55%));
+    --gradient-warm: linear-gradient(135deg, hsl(0 75% 48%), hsl(10 80% 55%));
     --shadow-elegant: 0 8px 24px -12px hsl(220 25% 12% / 0.18);
     --shadow-soft: 0 2px 8px -2px hsl(220 25% 12% / 0.08);
 
     --sidebar-background: 220 25% 12%;
     --sidebar-foreground: 38 25% 88%;
-    --sidebar-primary: 14 75% 55%;
+    --sidebar-primary: 0 75% 55%;
     --sidebar-primary-foreground: 38 30% 98%;
     --sidebar-accent: 220 20% 18%;
     --sidebar-accent-foreground: 38 25% 95%;
     --sidebar-border: 220 20% 20%;
-    --sidebar-ring: 14 75% 55%;
+    --sidebar-ring: 0 75% 55%;
   }
 
   .dark {
@@ -65,7 +65,7 @@
     --card-foreground: 38 25% 92%;
     --popover: 220 22% 12%;
     --popover-foreground: 38 25% 92%;
-    --primary: 14 80% 58%;
+    --primary: 0 80% 58%;
     --primary-foreground: 220 25% 8%;
     --secondary: 220 18% 18%;
     --secondary-foreground: 38 25% 92%;
@@ -77,7 +77,7 @@
     --destructive-foreground: 38 25% 92%;
     --border: 220 18% 20%;
     --input: 220 18% 20%;
-    --ring: 14 80% 58%;
+    --ring: 0 80% 58%;
   }
 }
 
