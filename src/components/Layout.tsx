@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { RunningTimerBadge } from "@/components/RunningTimerBadge";
 import { cn } from "@/lib/utils";
 
-const navAll = [
+type NavItem = { to: string; label: string; icon: typeof Clock; end?: boolean };
+const navAll: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/timer", label: "Timer", icon: Timer },
   { to: "/timesheet", label: "Timesheet", icon: CalendarDays },
   { to: "/planner", label: "Planner", icon: CalendarDays },
 ];
-const navAdmin = [
+const navAdmin: NavItem[] = [
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/team", label: "Team", icon: Users },
   { to: "/import", label: "Import", icon: Upload },
