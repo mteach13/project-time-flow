@@ -50,15 +50,19 @@ export default function Export() {
   const entries = useQuery({
     queryKey: ["export", from, to],
     queryFn: async () => {
-      const { data } = await supabase.from("time_entries")
-        .select("entry_date, minutes, note, user_id, project_id, projects(name, clients(name)), profiles:profiles!time_entries_user_id_fkey(full_name)")
-        .gte("entry_date", from).lte("entry_date", to).order("entry_date");
-      return (data ?? []) as any[];
+      const [{ data: es }, { data: ps }] = await Promise.all([
+        supabase.from("time_entries")
+          .select("entry_date, minutes, note, user_id, project_id, projects(name, clients(name))")
+          .gte("entry_date", from).lte("entry_date", to).order("entry_date"),
+        supabase.from("profiles").select("id, full_name"),
+      ]);
+      const nameById = new Map((ps ?? []).map((p) => [p.id, p.full_name]));
+      return (es ?? []).map((e: any) => ({ ...e, _user: nameById.get(e.user_id) ?? "Unknown" }));
     },
   });
 
-  const rows: Row[] = useMemo(() => (entries.data ?? []).map((e) => ({
-    user: e.profiles?.full_name ?? "Unknown",
+  const rows: Row[] = useMemo(() => (entries.data ?? []).map((e: any) => ({
+    user: e._user,
     project: e.projects?.name ?? "Unknown",
     client: e.projects?.clients?.name ?? "",
     date: e.entry_date,
