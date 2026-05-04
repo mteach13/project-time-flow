@@ -30,13 +30,52 @@ export default function Projects() {
   const profiles = useQuery({ queryKey: ["profiles-all"], queryFn: async () => (await supabase.from("profiles").select("id, full_name").order("full_name")).data ?? [] });
 
   // Client form
-  const [clientName, setClientName] = useState("");
-  const addClient = async () => {
-    const name = clientName.trim();
-    if (!name) return;
-    const { error } = await supabase.from("clients").insert({ name });
-    if (error) toast.error(error.message);
-    else { setClientName(""); qc.invalidateQueries({ queryKey: ["clients"] }); toast.success("Client added"); }
+  const [cOpen, setCOpen] = useState(false);
+  const [cId, setCId] = useState<string | null>(null);
+  const [cName, setCName] = useState("");
+  const [cContactName, setCContactName] = useState("");
+  const [cEmail, setCEmail] = useState("");
+  const [cPhone, setCPhone] = useState("");
+  const [cAddress, setCAddress] = useState("");
+  const [cNotes, setCNotes] = useState("");
+
+  const openNewClient = () => {
+    setCId(null); setCName(""); setCContactName(""); setCEmail(""); setCPhone(""); setCAddress(""); setCNotes("");
+    setCOpen(true);
+  };
+  const openEditClient = (c: any) => {
+    setCId(c.id);
+    setCName(c.name ?? "");
+    setCContactName(c.contact_name ?? "");
+    setCEmail(c.contact_email ?? "");
+    setCPhone(c.contact_phone ?? "");
+    setCAddress(c.address ?? "");
+    setCNotes(c.notes ?? "");
+    setCOpen(true);
+  };
+  const saveClient = async () => {
+    const name = cName.trim();
+    if (!name) { toast.error("Name required"); return; }
+    if (cEmail && !/^\S+@\S+\.\S+$/.test(cEmail.trim())) { toast.error("Invalid email"); return; }
+    const payload = {
+      name,
+      contact_name: cContactName.trim() || null,
+      contact_email: cEmail.trim() || null,
+      contact_phone: cPhone.trim() || null,
+      address: cAddress.trim() || null,
+      notes: cNotes.trim() || null,
+    };
+    if (cId) {
+      const { error } = await supabase.from("clients").update(payload).eq("id", cId);
+      if (error) { toast.error(error.message); return; }
+    } else {
+      const { error } = await supabase.from("clients").insert(payload);
+      if (error) { toast.error(error.message); return; }
+    }
+    setCOpen(false);
+    qc.invalidateQueries({ queryKey: ["clients"] });
+    qc.invalidateQueries({ queryKey: ["projects-all"] });
+    toast.success("Saved");
   };
   const delClient = async (id: string) => { if (!confirm("Delete client? Projects keep their data but lose the client link.")) return; await supabase.from("clients").delete().eq("id", id); qc.invalidateQueries({ queryKey: ["clients"] }); qc.invalidateQueries({ queryKey: ["projects-all"] }); };
 
