@@ -126,20 +126,45 @@ export default function Projects() {
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl">Clients</h2>
-        </div>
-        <div className="flex gap-2">
-          <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="New client name" maxLength={120} />
-          <Button onClick={addClient}><Plus className="h-4 w-4 mr-1" />Add</Button>
+          <Button onClick={openNewClient}><Plus className="h-4 w-4 mr-1" />New client</Button>
         </div>
         <div className="divide-y">
-          {clients.data?.map((c) => (
-            <div key={c.id} className="py-2 flex items-center justify-between">
-              <span>{c.name}</span>
-              <Button variant="ghost" size="icon" onClick={() => delClient(c.id)}><Trash2 className="h-4 w-4" /></Button>
+          {clients.data?.map((c: any) => (
+            <div key={c.id} className="py-3 flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{c.name}</div>
+                {(c.contact_name || c.contact_email || c.contact_phone) && (
+                  <div className="text-sm text-muted-foreground truncate">
+                    {[c.contact_name, c.contact_email, c.contact_phone].filter(Boolean).join(" · ")}
+                  </div>
+                )}
+                {c.address && <div className="text-sm text-muted-foreground truncate">{c.address}</div>}
+              </div>
+              <div className="flex shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => openEditClient(c)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => delClient(c.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </div>
           ))}
         </div>
       </Card>
+
+      <Dialog open={cOpen} onOpenChange={setCOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{cId ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Name</Label><Input value={cName} onChange={(e) => setCName(e.target.value)} maxLength={120} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Point of contact</Label><Input value={cContactName} onChange={(e) => setCContactName(e.target.value)} maxLength={120} /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={cPhone} onChange={(e) => setCPhone(e.target.value)} maxLength={40} /></div>
+            </div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} maxLength={255} /></div>
+            <div className="space-y-2"><Label>Address</Label><Textarea value={cAddress} onChange={(e) => setCAddress(e.target.value)} maxLength={500} rows={2} /></div>
+            <div className="space-y-2"><Label>Notes</Label><Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} maxLength={2000} rows={3} /></div>
+            <Button onClick={saveClient} className="w-full">Save</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
