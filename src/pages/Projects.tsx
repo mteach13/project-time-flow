@@ -14,7 +14,18 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 export default function Projects() {
   const qc = useQueryClient();
   const clients = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("id, name").order("name")).data ?? [] });
-  const projects = useQuery({ queryKey: ["projects-all"], queryFn: async () => (await supabase.from("projects").select("id, name, status, hourly_budget, client_id, clients(name)").order("name")).data ?? [] });
+  const projects = useQuery({
+    queryKey: ["projects-all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("projects").select("id, name, status, hourly_budget, client_id, clients(name)");
+      return (data ?? []).slice().sort((a: any, b: any) => {
+        const ca = (a.clients?.name ?? "\uffff").toLowerCase();
+        const cb = (b.clients?.name ?? "\uffff").toLowerCase();
+        if (ca !== cb) return ca.localeCompare(cb);
+        return (a.name ?? "").toLowerCase().localeCompare((b.name ?? "").toLowerCase());
+      });
+    },
+  });
   const profiles = useQuery({ queryKey: ["profiles-all"], queryFn: async () => (await supabase.from("profiles").select("id, full_name").order("full_name")).data ?? [] });
 
   // Client form
@@ -97,13 +108,13 @@ export default function Projects() {
         </div>
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
-            <tr><th className="py-2">Name</th><th className="py-2">Client</th><th className="py-2">Status</th><th className="py-2 text-right">Budget</th><th></th></tr>
+            <tr><th className="py-2">Client</th><th className="py-2">Name</th><th className="py-2">Status</th><th className="py-2 text-right">Budget</th><th></th></tr>
           </thead>
           <tbody>
             {projects.data?.map((p: any) => (
               <tr key={p.id} className="border-t">
-                <td className="py-2 font-medium">{p.name}</td>
                 <td className="py-2">{p.clients?.name ?? <span className="text-muted-foreground">—</span>}</td>
+                <td className="py-2 font-medium">{p.name}</td>
                 <td className="py-2"><span className="text-xs uppercase tracking-wide bg-secondary px-2 py-1 rounded">{p.status}</span></td>
                 <td className="py-2 text-right font-mono">{p.hourly_budget ? `${p.hourly_budget}h` : "—"}</td>
                 <td className="py-2 text-right">
@@ -144,7 +155,21 @@ export default function Projects() {
             </div>
             <div className="space-y-2"><Label>Hourly budget (optional)</Label><Input type="number" step="1" min="0" value={pBudget} onChange={(e) => setPBudget(e.target.value)} /></div>
             <div className="space-y-2">
-              <Label>Team members</Label>
+              <div className="flex items-center justify-between">
+                <Label>Team members</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const all = profiles.data ?? [];
+                    if (pMembers.size === all.length) setPMembers(new Set());
+                    else setPMembers(new Set(all.map((u) => u.id)));
+                  }}
+                >
+                  {profiles.data && pMembers.size === profiles.data.length ? "Deselect all" : "Select all"}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-auto border rounded-md p-3">
                 {profiles.data?.map((u) => (
                   <label key={u.id} className="flex items-center gap-2 text-sm">
