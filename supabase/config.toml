@@ -2,3 +2,6 @@ project_id = "zhnmfaykspgidxfynfgs"
 
 [functions.invite-member]
 verify_jwt = true
+
+[functions.manage-member]
+verify_jwt = true

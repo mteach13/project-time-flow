@@ -6,10 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { UserPlus, Copy } from "lucide-react";
+import { UserPlus, Copy, Pencil, Trash2 } from "lucide-react";
+
+type Member = { id: string; full_name: string; email: string | null; roles: string[] };
 
 export default function Team() {
   const qc = useQueryClient();
@@ -21,12 +33,20 @@ export default function Team() {
   const [submitting, setSubmitting] = useState(false);
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
 
+  const [editing, setEditing] = useState<Member | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const [deleting, setDeleting] = useState<Member | null>(null);
+  const [deletingNow, setDeletingNow] = useState(false);
+
   const profiles = useQuery({
     queryKey: ["team-profiles"],
     queryFn: async () => {
       const { data: ps } = await supabase.from("profiles").select("id, full_name, email").order("full_name");
       const { data: rs } = await supabase.from("user_roles").select("user_id, role");
-      const byId = new Map((ps ?? []).map((p) => [p.id, { ...p, roles: [] as string[] }]));
+      const byId = new Map<string, Member>((ps ?? []).map((p) => [p.id, { ...p, roles: [] as string[] }]));
       rs?.forEach((r) => { byId.get(r.user_id)?.roles.push(r.role); });
       return Array.from(byId.values());
     },
@@ -63,6 +83,45 @@ export default function Team() {
     if (!credentials) return;
     navigator.clipboard.writeText(`Email: ${credentials.email}\nTemporary password: ${credentials.password}`);
     toast.success("Copied to clipboard");
+  };
+
+  const openEdit = (m: Member) => {
+    setEditing(m);
+    setEditName(m.full_name ?? "");
+    setEditEmail(m.email ?? "");
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    if (!editEmail.trim()) { toast.error("Email is required"); return; }
+    setSavingEdit(true);
+    const { data, error } = await supabase.functions.invoke("manage-member", {
+      body: { action: "update", user_id: editing.id, email: editEmail.trim(), full_name: editName.trim() },
+    });
+    setSavingEdit(false);
+    if (error || data?.error) {
+      toast.error(error?.message || data?.error || "Failed to update");
+      return;
+    }
+    toast.success("Member updated");
+    setEditing(null);
+    qc.invalidateQueries({ queryKey: ["team-profiles"] });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    setDeletingNow(true);
+    const { data, error } = await supabase.functions.invoke("manage-member", {
+      body: { action: "delete", user_id: deleting.id },
+    });
+    setDeletingNow(false);
+    if (error || data?.error) {
+      toast.error(error?.message || data?.error || "Failed to remove member");
+      return;
+    }
+    toast.success("Member removed");
+    setDeleting(null);
+    qc.invalidateQueries({ queryKey: ["team-profiles"] });
   };
 
   return (
@@ -117,20 +176,36 @@ export default function Team() {
       <Card className="p-6">
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
-            <tr><th className="py-2">Name</th><th className="py-2">Email</th><th className="py-2">Role</th><th></th></tr>
+            <tr><th className="py-2">Name</th><th className="py-2">Email</th><th className="py-2">Role</th><th className="py-2 text-right">Actions</th></tr>
           </thead>
           <tbody>
             {profiles.data?.map((p) => {
-              const isAdmin = p.roles.includes("admin");
+              const isAdminRow = p.roles.includes("admin");
+              const isSelf = p.id === user?.id;
               return (
                 <tr key={p.id} className="border-t">
                   <td className="py-2 font-medium">{p.full_name}</td>
                   <td className="py-2 text-muted-foreground">{p.email}</td>
-                  <td className="py-2">{isAdmin ? <span className="text-xs uppercase bg-primary/10 text-primary px-2 py-1 rounded">Admin</span> : <span className="text-xs uppercase bg-secondary px-2 py-1 rounded">Member</span>}</td>
+                  <td className="py-2">{isAdminRow ? <span className="text-xs uppercase bg-primary/10 text-primary px-2 py-1 rounded">Admin</span> : <span className="text-xs uppercase bg-secondary px-2 py-1 rounded">Member</span>}</td>
                   <td className="py-2 text-right">
-                    <Button size="sm" variant="outline" onClick={() => setAdmin(p.id, !isAdmin)}>
-                      {isAdmin ? "Revoke admin" : "Make admin"}
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openEdit(p)}>
+                        <Pencil className="w-3.5 h-3.5 mr-1" />Edit
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setAdmin(p.id, !isAdminRow)}>
+                        {isAdminRow ? "Revoke admin" : "Make admin"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        disabled={isSelf}
+                        title={isSelf ? "You can't remove yourself" : "Remove member"}
+                        onClick={() => setDeleting(p)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -138,6 +213,52 @@ export default function Team() {
           </tbody>
         </table>
       </Card>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit team member</DialogTitle>
+            <DialogDescription>Fix typos in name or email. Email changes update the login email.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Full name</Label>
+              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input id="edit-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>{savingEdit ? "Saving..." : "Save changes"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {deleting?.full_name || deleting?.email}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes their login. Their existing time entries and plan history will also be removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingNow}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deletingNow}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingNow ? "Removing..." : "Remove member"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
