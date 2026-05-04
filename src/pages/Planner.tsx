@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, Fragment } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,23 +23,51 @@ export default function Planner() {
   });
   const projects = useQuery({
     queryKey: ["projects-active"],
-    queryFn: async () => (await supabase.from("projects").select("id, name, clients(name)").eq("status", "active").order("name")).data ?? [],
+    queryFn: async () =>
+      (await supabase
+        .from("projects")
+        .select("id, name, client_id, clients(name)")
+        .eq("status", "active")
+        .order("name")).data ?? [],
   });
   const plans = useQuery({
     queryKey: ["plans", startISO],
-    queryFn: async () => (await supabase.from("plan_entries").select("user_id, project_id, estimated_hours").eq("week_start_date", startISO)).data ?? [],
+    queryFn: async () =>
+      (await supabase
+        .from("plan_entries")
+        .select("user_id, project_id, estimated_hours")
+        .eq("week_start_date", startISO)).data ?? [],
   });
 
+  // grid[projectId][userId] = hours
   const grid = useMemo(() => {
     const m: Record<string, Record<string, number>> = {};
     plans.data?.forEach((p) => {
-      m[p.user_id] = m[p.user_id] || {};
-      m[p.user_id][p.project_id] = Number(p.estimated_hours);
+      m[p.project_id] = m[p.project_id] || {};
+      m[p.project_id][p.user_id] = Number(p.estimated_hours);
     });
     return m;
   }, [plans.data]);
 
   const visibleProfiles = isAdmin ? profiles.data : profiles.data?.filter((p) => p.id === user?.id);
+
+  // Group projects by client
+  const grouped = useMemo(() => {
+    const groups: { clientId: string | null; clientName: string; projects: any[] }[] = [];
+    const map = new Map<string, { clientId: string | null; clientName: string; projects: any[] }>();
+    projects.data?.forEach((p: any) => {
+      const key = p.client_id ?? "__none__";
+      const name = p.clients?.name ?? "No client";
+      if (!map.has(key)) {
+        const g = { clientId: p.client_id, clientName: name, projects: [] as any[] };
+        map.set(key, g);
+        groups.push(g);
+      }
+      map.get(key)!.projects.push(p);
+    });
+    groups.sort((a, b) => a.clientName.localeCompare(b.clientName));
+    return groups;
+  }, [projects.data]);
 
   const save = async (uid: string, pid: string, val: string) => {
     const hours = val === "" ? 0 : parseFloat(val);
@@ -61,8 +89,15 @@ export default function Planner() {
     qc.invalidateQueries({ queryKey: ["plans", startISO] });
   };
 
+  const memberTotal = (uid: string) =>
+    Object.values(grid).reduce((s, row) => s + (row[uid] || 0), 0);
+  const projectTotal = (pid: string) =>
+    visibleProfiles?.reduce((s, u) => s + (grid[pid]?.[u.id] || 0), 0) ?? 0;
+  const clientTotal = (clientProjects: any[]) =>
+    clientProjects.reduce((s, p) => s + projectTotal(p.id), 0);
+
   return (
-    <div className="space-y-6 max-w-[1200px]">
+    <div className="space-y-6 max-w-[1400px]">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl">Weekly planner</h1>
@@ -78,61 +113,77 @@ export default function Planner() {
       </div>
 
       <Card className="p-4 overflow-x-auto">
-        <table className="text-sm">
+        <table className="text-sm border-separate border-spacing-0 w-full">
           <thead>
             <tr className="text-left text-muted-foreground">
-              <th className="px-3 py-2 sticky left-0 bg-card min-w-[180px]">Member</th>
-              {projects.data?.map((p: any) => (
-                <th key={p.id} className="px-2 py-2 text-center w-24">
-                  <div className="font-medium text-foreground truncate max-w-[100px]">{p.name}</div>
-                  {p.clients?.name && <div className="text-xs">{p.clients.name}</div>}
+              <th className="px-3 py-2 sticky left-0 bg-card min-w-[240px] border-b">Client / Project</th>
+              {visibleProfiles?.map((u) => (
+                <th key={u.id} className="px-2 py-2 text-center w-28 border-b">
+                  <div className="font-medium text-foreground truncate max-w-[110px] mx-auto">{u.full_name}</div>
                 </th>
               ))}
-              <th className="px-3 py-2 text-right w-20">Total</th>
+              <th className="px-3 py-2 text-right w-20 border-b">Total</th>
             </tr>
           </thead>
           <tbody>
-            {visibleProfiles?.map((u) => {
-              const row = grid[u.id] || {};
-              const total = Object.values(row).reduce((s, v) => s + v, 0);
-              const editable = isAdmin;
-              return (
-                <tr key={u.id} className="border-t">
-                  <td className="px-3 py-2 sticky left-0 bg-card font-medium">{u.full_name}</td>
-                  {projects.data?.map((p: any) => {
-                    const v = row[p.id] || 0;
-                    return (
-                      <td key={p.id} className="px-1 py-1">
-                        <Input
-                          key={`${u.id}-${p.id}-${v}`}
-                          defaultValue={v || ""}
-                          type="number"
-                          step="0.5"
-                          min="0"
-                          disabled={!editable}
-                          className="h-9 text-center font-mono"
-                          onBlur={(e) => {
-                            const nv = e.target.value.trim();
-                            if (nv === String(v || "")) return;
-                            save(u.id, p.id, nv);
-                          }}
-                        />
-                      </td>
-                    );
-                  })}
-                  <td className="px-3 py-2 text-right font-mono">{total}</td>
+            {grouped.map((g) => (
+              <Fragment key={g.clientId ?? "none"}>
+                <tr className="bg-muted/40">
+                  <td
+                    className="px-3 py-2 sticky left-0 bg-muted/40 font-semibold uppercase tracking-wide text-xs text-muted-foreground border-l-4 border-primary"
+                    colSpan={1}
+                  >
+                    {g.clientName}
+                    <span className="ml-2 normal-case font-normal text-muted-foreground/70">
+                      ({g.projects.length} {g.projects.length === 1 ? "project" : "projects"})
+                    </span>
+                  </td>
+                  {visibleProfiles?.map((u) => (
+                    <td key={u.id} className="bg-muted/40" />
+                  ))}
+                  <td className="px-3 py-2 text-right font-mono font-semibold bg-muted/40">
+                    {clientTotal(g.projects)}
+                  </td>
                 </tr>
-              );
-            })}
+                {g.projects.map((p: any) => (
+                  <tr key={p.id} className="border-t">
+                    <td className="px-3 py-2 sticky left-0 bg-card border-l-4 border-primary/30 pl-6 font-medium">
+                      {p.name}
+                    </td>
+                    {visibleProfiles?.map((u) => {
+                      const v = grid[p.id]?.[u.id] || 0;
+                      return (
+                        <td key={u.id} className="px-1 py-1">
+                          <Input
+                            key={`${p.id}-${u.id}-${v}`}
+                            defaultValue={v || ""}
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            disabled={!isAdmin}
+                            className="h-9 text-center font-mono"
+                            onBlur={(e) => {
+                              const nv = e.target.value.trim();
+                              if (nv === String(v || "")) return;
+                              save(u.id, p.id, nv);
+                            }}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="px-3 py-2 text-right font-mono">{projectTotal(p.id)}</td>
+                  </tr>
+                ))}
+              </Fragment>
+            ))}
             {isAdmin && (
-              <tr className="border-t font-medium">
-                <td className="px-3 py-2 text-right sticky left-0 bg-card">Project total</td>
-                {projects.data?.map((p: any) => {
-                  const total = visibleProfiles?.reduce((s, u) => s + (grid[u.id]?.[p.id] || 0), 0) ?? 0;
-                  return <td key={p.id} className="px-2 py-2 text-center font-mono">{total}</td>;
-                })}
+              <tr className="border-t-2 font-medium bg-card">
+                <td className="px-3 py-2 text-right sticky left-0 bg-card">Member total</td>
+                {visibleProfiles?.map((u) => (
+                  <td key={u.id} className="px-2 py-2 text-center font-mono">{memberTotal(u.id)}</td>
+                ))}
                 <td className="px-3 py-2 text-right font-mono">
-                  {visibleProfiles?.reduce((s, u) => s + Object.values(grid[u.id] || {}).reduce((ss, v) => ss + v, 0), 0) ?? 0}
+                  {visibleProfiles?.reduce((s, u) => s + memberTotal(u.id), 0) ?? 0}
                 </td>
               </tr>
             )}
