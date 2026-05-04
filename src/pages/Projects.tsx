@@ -14,7 +14,18 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 export default function Projects() {
   const qc = useQueryClient();
   const clients = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("id, name").order("name")).data ?? [] });
-  const projects = useQuery({ queryKey: ["projects-all"], queryFn: async () => (await supabase.from("projects").select("id, name, status, hourly_budget, client_id, clients(name)").order("name")).data ?? [] });
+  const projects = useQuery({
+    queryKey: ["projects-all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("projects").select("id, name, status, hourly_budget, client_id, clients(name)");
+      return (data ?? []).slice().sort((a: any, b: any) => {
+        const ca = (a.clients?.name ?? "\uffff").toLowerCase();
+        const cb = (b.clients?.name ?? "\uffff").toLowerCase();
+        if (ca !== cb) return ca.localeCompare(cb);
+        return (a.name ?? "").toLowerCase().localeCompare((b.name ?? "").toLowerCase());
+      });
+    },
+  });
   const profiles = useQuery({ queryKey: ["profiles-all"], queryFn: async () => (await supabase.from("profiles").select("id, full_name").order("full_name")).data ?? [] });
 
   // Client form
