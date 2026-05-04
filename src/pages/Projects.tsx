@@ -155,7 +155,21 @@ export default function Projects() {
             </div>
             <div className="space-y-2"><Label>Hourly budget (optional)</Label><Input type="number" step="1" min="0" value={pBudget} onChange={(e) => setPBudget(e.target.value)} /></div>
             <div className="space-y-2">
-              <Label>Team members</Label>
+              <div className="flex items-center justify-between">
+                <Label>Team members</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const all = profiles.data ?? [];
+                    if (pMembers.size === all.length) setPMembers(new Set());
+                    else setPMembers(new Set(all.map((u) => u.id)));
+                  }}
+                >
+                  {profiles.data && pMembers.size === profiles.data.length ? "Deselect all" : "Select all"}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-auto border rounded-md p-3">
                 {profiles.data?.map((u) => (
                   <label key={u.id} className="flex items-center gap-2 text-sm">
