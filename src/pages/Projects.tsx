@@ -108,13 +108,13 @@ export default function Projects() {
         </div>
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
-            <tr><th className="py-2">Name</th><th className="py-2">Client</th><th className="py-2">Status</th><th className="py-2 text-right">Budget</th><th></th></tr>
+            <tr><th className="py-2">Client</th><th className="py-2">Name</th><th className="py-2">Status</th><th className="py-2 text-right">Budget</th><th></th></tr>
           </thead>
           <tbody>
             {projects.data?.map((p: any) => (
               <tr key={p.id} className="border-t">
-                <td className="py-2 font-medium">{p.name}</td>
                 <td className="py-2">{p.clients?.name ?? <span className="text-muted-foreground">—</span>}</td>
+                <td className="py-2 font-medium">{p.name}</td>
                 <td className="py-2"><span className="text-xs uppercase tracking-wide bg-secondary px-2 py-1 rounded">{p.status}</span></td>
                 <td className="py-2 text-right font-mono">{p.hourly_budget ? `${p.hourly_budget}h` : "—"}</td>
                 <td className="py-2 text-right">
