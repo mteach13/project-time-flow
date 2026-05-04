@@ -5,15 +5,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export default function Projects() {
   const qc = useQueryClient();
-  const clients = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("id, name").order("name")).data ?? [] });
+  const clients = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("id, name, contact_name, contact_email, contact_phone, address, notes").order("name")).data ?? [] });
   const projects = useQuery({
     queryKey: ["projects-all"],
     queryFn: async () => {
