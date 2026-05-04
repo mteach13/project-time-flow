@@ -5,15 +5,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export default function Projects() {
   const qc = useQueryClient();
-  const clients = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("id, name").order("name")).data ?? [] });
+  const clients = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("id, name, contact_name, contact_email, contact_phone, address, notes").order("name")).data ?? [] });
   const projects = useQuery({
     queryKey: ["projects-all"],
     queryFn: async () => {
@@ -29,13 +30,52 @@ export default function Projects() {
   const profiles = useQuery({ queryKey: ["profiles-all"], queryFn: async () => (await supabase.from("profiles").select("id, full_name").order("full_name")).data ?? [] });
 
   // Client form
-  const [clientName, setClientName] = useState("");
-  const addClient = async () => {
-    const name = clientName.trim();
-    if (!name) return;
-    const { error } = await supabase.from("clients").insert({ name });
-    if (error) toast.error(error.message);
-    else { setClientName(""); qc.invalidateQueries({ queryKey: ["clients"] }); toast.success("Client added"); }
+  const [cOpen, setCOpen] = useState(false);
+  const [cId, setCId] = useState<string | null>(null);
+  const [cName, setCName] = useState("");
+  const [cContactName, setCContactName] = useState("");
+  const [cEmail, setCEmail] = useState("");
+  const [cPhone, setCPhone] = useState("");
+  const [cAddress, setCAddress] = useState("");
+  const [cNotes, setCNotes] = useState("");
+
+  const openNewClient = () => {
+    setCId(null); setCName(""); setCContactName(""); setCEmail(""); setCPhone(""); setCAddress(""); setCNotes("");
+    setCOpen(true);
+  };
+  const openEditClient = (c: any) => {
+    setCId(c.id);
+    setCName(c.name ?? "");
+    setCContactName(c.contact_name ?? "");
+    setCEmail(c.contact_email ?? "");
+    setCPhone(c.contact_phone ?? "");
+    setCAddress(c.address ?? "");
+    setCNotes(c.notes ?? "");
+    setCOpen(true);
+  };
+  const saveClient = async () => {
+    const name = cName.trim();
+    if (!name) { toast.error("Name required"); return; }
+    if (cEmail && !/^\S+@\S+\.\S+$/.test(cEmail.trim())) { toast.error("Invalid email"); return; }
+    const payload = {
+      name,
+      contact_name: cContactName.trim() || null,
+      contact_email: cEmail.trim() || null,
+      contact_phone: cPhone.trim() || null,
+      address: cAddress.trim() || null,
+      notes: cNotes.trim() || null,
+    };
+    if (cId) {
+      const { error } = await supabase.from("clients").update(payload).eq("id", cId);
+      if (error) { toast.error(error.message); return; }
+    } else {
+      const { error } = await supabase.from("clients").insert(payload);
+      if (error) { toast.error(error.message); return; }
+    }
+    setCOpen(false);
+    qc.invalidateQueries({ queryKey: ["clients"] });
+    qc.invalidateQueries({ queryKey: ["projects-all"] });
+    toast.success("Saved");
   };
   const delClient = async (id: string) => { if (!confirm("Delete client? Projects keep their data but lose the client link.")) return; await supabase.from("clients").delete().eq("id", id); qc.invalidateQueries({ queryKey: ["clients"] }); qc.invalidateQueries({ queryKey: ["projects-all"] }); };
 
@@ -86,20 +126,45 @@ export default function Projects() {
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl">Clients</h2>
-        </div>
-        <div className="flex gap-2">
-          <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="New client name" maxLength={120} />
-          <Button onClick={addClient}><Plus className="h-4 w-4 mr-1" />Add</Button>
+          <Button onClick={openNewClient}><Plus className="h-4 w-4 mr-1" />New client</Button>
         </div>
         <div className="divide-y">
-          {clients.data?.map((c) => (
-            <div key={c.id} className="py-2 flex items-center justify-between">
-              <span>{c.name}</span>
-              <Button variant="ghost" size="icon" onClick={() => delClient(c.id)}><Trash2 className="h-4 w-4" /></Button>
+          {clients.data?.map((c: any) => (
+            <div key={c.id} className="py-3 flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{c.name}</div>
+                {(c.contact_name || c.contact_email || c.contact_phone) && (
+                  <div className="text-sm text-muted-foreground truncate">
+                    {[c.contact_name, c.contact_email, c.contact_phone].filter(Boolean).join(" · ")}
+                  </div>
+                )}
+                {c.address && <div className="text-sm text-muted-foreground truncate">{c.address}</div>}
+              </div>
+              <div className="flex shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => openEditClient(c)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => delClient(c.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </div>
           ))}
         </div>
       </Card>
+
+      <Dialog open={cOpen} onOpenChange={setCOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{cId ? "Edit client" : "New client"}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Name</Label><Input value={cName} onChange={(e) => setCName(e.target.value)} maxLength={120} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Point of contact</Label><Input value={cContactName} onChange={(e) => setCContactName(e.target.value)} maxLength={120} /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={cPhone} onChange={(e) => setCPhone(e.target.value)} maxLength={40} /></div>
+            </div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} maxLength={255} /></div>
+            <div className="space-y-2"><Label>Address</Label><Textarea value={cAddress} onChange={(e) => setCAddress(e.target.value)} maxLength={500} rows={2} /></div>
+            <div className="space-y-2"><Label>Notes</Label><Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} maxLength={2000} rows={3} /></div>
+            <Button onClick={saveClient} className="w-full">Save</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
