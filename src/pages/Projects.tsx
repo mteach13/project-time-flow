@@ -118,6 +118,16 @@ export default function Projects() {
     toast.success("Saved");
   };
   const delProject = async (id: string) => { if (!confirm("Delete project and all its time entries?")) return; await supabase.from("projects").delete().eq("id", id); qc.invalidateQueries({ queryKey: ["projects-all"] }); };
+  const toggleArchive = async (p: any) => {
+    const next = p.status === "archived" ? "active" : "archived";
+    const { error } = await supabase.from("projects").update({ status: next }).eq("id", p.id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["projects-all"] });
+    qc.invalidateQueries({ queryKey: ["projects-active"] });
+    toast.success(next === "archived" ? "Project archived" : "Project restored");
+  };
+  const [showArchived, setShowArchived] = useState(false);
+  const visibleProjects = (projects.data ?? []).filter((p: any) => showArchived || p.status !== "archived");
 
   return (
     <div className="space-y-8 max-w-5xl">
