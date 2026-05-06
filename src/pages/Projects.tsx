@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Archive, ArchiveRestore } from "lucide-react";
 
 export default function Projects() {
   const qc = useQueryClient();
@@ -118,6 +118,16 @@ export default function Projects() {
     toast.success("Saved");
   };
   const delProject = async (id: string) => { if (!confirm("Delete project and all its time entries?")) return; await supabase.from("projects").delete().eq("id", id); qc.invalidateQueries({ queryKey: ["projects-all"] }); };
+  const toggleArchive = async (p: any) => {
+    const next = p.status === "archived" ? "active" : "archived";
+    const { error } = await supabase.from("projects").update({ status: next }).eq("id", p.id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["projects-all"] });
+    qc.invalidateQueries({ queryKey: ["projects-active"] });
+    toast.success(next === "archived" ? "Project archived" : "Project restored");
+  };
+  const [showArchived, setShowArchived] = useState(false);
+  const visibleProjects = (projects.data ?? []).filter((p: any) => showArchived || p.status !== "archived");
 
   return (
     <div className="space-y-8 max-w-5xl">
@@ -169,20 +179,29 @@ export default function Projects() {
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl">Projects</h2>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />New project</Button>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Checkbox checked={showArchived} onCheckedChange={(c) => setShowArchived(!!c)} />
+              Show archived
+            </label>
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />New project</Button>
+          </div>
         </div>
         <table className="w-full text-sm">
           <thead className="text-left text-muted-foreground">
             <tr><th className="py-2">Client</th><th className="py-2">Name</th><th className="py-2">Status</th><th className="py-2 text-right">Budget</th><th></th></tr>
           </thead>
           <tbody>
-            {projects.data?.map((p: any) => (
-              <tr key={p.id} className="border-t">
+            {visibleProjects.map((p: any) => (
+              <tr key={p.id} className={`border-t ${p.status === "archived" ? "opacity-60" : ""}`}>
                 <td className="py-2">{p.clients?.name ?? <span className="text-muted-foreground">—</span>}</td>
                 <td className="py-2 font-medium">{p.name}</td>
                 <td className="py-2"><span className="text-xs uppercase tracking-wide bg-secondary px-2 py-1 rounded">{p.status}</span></td>
                 <td className="py-2 text-right font-mono">{p.hourly_budget ? `${p.hourly_budget}h` : "—"}</td>
                 <td className="py-2 text-right">
+                  <Button variant="ghost" size="icon" onClick={() => toggleArchive(p)} title={p.status === "archived" ? "Restore" : "Archive"}>
+                    {p.status === "archived" ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => delProject(p.id)}><Trash2 className="h-4 w-4" /></Button>
                 </td>
