@@ -139,10 +139,25 @@ export default function Projects() {
           <Button onClick={openNewClient}><Plus className="h-4 w-4 mr-1" />New client</Button>
         </div>
         <div className="divide-y">
-          {clients.data?.map((c: any) => (
+          {clients.data?.map((c: any) => {
+            const activeCount = (projects.data ?? []).filter((p: any) => p.client_id === c.id && p.status === "active").length;
+            return (
             <div key={c.id} className="py-3 flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <div className="font-medium">{c.name}</div>
+                <div className="font-medium flex items-center gap-2">
+                  {c.name}
+                  {activeCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="h-2 w-2 rounded-full bg-green-500" />
+                      {activeCount} active
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+                      inactive
+                    </span>
+                  )}
+                </div>
                 {(c.contact_name || c.contact_email || c.contact_phone) && (
                   <div className="text-sm text-muted-foreground truncate">
                     {[c.contact_name, c.contact_email, c.contact_phone].filter(Boolean).join(" · ")}
@@ -155,7 +170,8 @@ export default function Projects() {
                 <Button variant="ghost" size="icon" onClick={() => delClient(c.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
