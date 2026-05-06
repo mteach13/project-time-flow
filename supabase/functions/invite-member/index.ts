@@ -26,9 +26,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    const { email, full_name, make_admin } = await req.json();
-    if (!email) {
-      return new Response(JSON.stringify({ error: "Email is required" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    const body = await req.json();
+    const email = String(body.email ?? "").trim().toLowerCase();
+    const full_name = body.full_name ? String(body.full_name).trim() : "";
+    const make_admin = !!body.make_admin;
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRe.test(email)) {
+      return new Response(JSON.stringify({ error: "Please enter a valid email address" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     // Generate a temporary password
