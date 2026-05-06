@@ -30,9 +30,8 @@ Deno.serve(async (req) => {
     const email = String(body.email ?? "").trim().toLowerCase();
     const full_name = body.full_name ? String(body.full_name).trim() : "";
     const make_admin = !!body.make_admin;
-    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRe.test(email)) {
-      return new Response(JSON.stringify({ error: "Please enter a valid email address" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      return new Response(JSON.stringify({ error: `Invalid email format: "${email}"` }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     // Generate a temporary password
