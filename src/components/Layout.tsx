@@ -32,7 +32,7 @@ export default function Layout() {
             <Clock className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <div className="font-serif text-lg leading-none">SPARK</div>
+            <div className="font-serif text-lg leading-none">IGNITE</div>
             <div className="text-xs opacity-60">Time</div>
           </div>
         </div>
