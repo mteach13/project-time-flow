@@ -166,7 +166,7 @@ export default function Export() {
         <ol className="list-decimal list-inside text-muted-foreground space-y-1">
           <li>In Zoho Books: <em>Time Tracking → Timesheets → ⋯ menu → Import Time Entries</em>.</li>
           <li>Upload the downloaded <code>.csv</code> file and map the columns (headers already match Zoho's defaults).</li>
-          <li>Projects and users must already exist in Zoho Books with names / emails that match SPARK Time.</li>
+          <li>Projects and users must already exist in Zoho Books with names / emails that match IGNITE Time.</li>
         </ol>
       </Card>
     </div>
